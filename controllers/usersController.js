@@ -5,8 +5,8 @@ import {
   hashPassword,
   generateToken,
 } from "../utilities/index.js";
-
 import { createItem, getItem, getItems } from "../database/query/helper.js";
+import { comparePassword } from "../utilities/bcrypt.js";
 
 export default class UserController {
   static async getUsers(req, res) {
@@ -45,7 +45,7 @@ export default class UserController {
         }
       );
       if (createError) {
-        console.log("Error creating user",createError);
+        console.log("Error creating user", createError);
         throw new Error(createError);
       }
 
@@ -62,6 +62,32 @@ export default class UserController {
         token,
       };
       successResponse(res, 201, "User account created succesfully", response);
+    } catch (error) {
+      return errorResponse(res, 500, "Server error");
+    }
+  }
+
+  static async loginUser(req, res) {
+    const { email, password } = req.body;
+
+    try {
+      const { result: user } = await getItem("users", { email });
+
+      if (user) {
+        const { id, firstName, lastName, password: userPassword } = user[0];
+
+        const confirmPassword = comparePassword(userPassword, password);
+        if (!confirmPassword) {
+          return errorResponse(res, 401, "Authorization failed");
+        }
+
+        const token = await generateToken({ userId: id, firstName, lastName });
+
+        const data = { userId: id, token };
+
+        return successResponse(res, 200, "success", data);
+      }
+      return errorResponse(res, 401, "Authorization failed");
     } catch (error) {
       return errorResponse(res, 500, "Server error");
     }
