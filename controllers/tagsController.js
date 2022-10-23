@@ -9,7 +9,7 @@ import {
   deleteItem,
   getItem,
   getItems,
-  updateItem
+  updateItem,
 } from "../database/query/helper.js";
 
 import jwt from "../utilities/jwt.js";
@@ -25,6 +25,20 @@ export default class TagController {
       }
 
       return successResponseArray(res, 200, tags);
+    } catch (error) {
+      return errorResponse(res, 500, "Server error");
+    }
+  }
+
+  static async getTag(req, res) {
+    try {
+      const { id: tagId } = req.params;
+      const { error, result: tag } = await getItem("tags", { id: tagId });
+      if (error) {
+        return errorResponse(res, 500, "Server error");
+      }
+
+      return successResponseArray(res, 200, tag);
     } catch (error) {
       return errorResponse(res, 500, "Server error");
     }
