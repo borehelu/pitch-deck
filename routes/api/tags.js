@@ -1,26 +1,22 @@
 import express from "express";
 import { TagController } from "../../controllers/index.js";
+import { Authenticate, validate } from "../../middlewares/index.js";
 
 const router = express.Router();
-const { getTags } = TagController;
+const { getTags, createTag, removeTag, editTag } = TagController;
+const { verifyToken } = Authenticate;
 
 // create tags
-router.post("/tags", (req, res) => {
-  res.json({ message: "create user" });
-});
+router.post("/tags", verifyToken, createTag);
 
 // get tags
-router.get("/tags",getTags);
+router.get("/tags", verifyToken, getTags);
 
 // remove tags
-router.delete("/tags/:id", (req, res) => {
-  res.json({ message: "login user" });
-});
+router.delete("/tags/:id", verifyToken, removeTag);
 
 // update tags
+router.patch('/tags/:id', validate('createTag'), verifyToken, editTag);
 
-router.patch("/tags/:id", (req, res) => {
-  res.json({ message: "login user" });
-});
 
 export default router;

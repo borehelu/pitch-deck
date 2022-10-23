@@ -15,4 +15,10 @@ export default class Jwt {
     const decoded = await jwt.verify(token, secret);
     return decoded;
   }
+
+  static async decodeToken(token){
+    const payload = await jwt.decode(token);
+    return payload;
+  }
 }
+

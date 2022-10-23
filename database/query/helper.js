@@ -39,7 +39,10 @@ export const updateItem = async (table, id, data) => {
   const sql = `UPDATE ${table} SET ${columns} WHERE id='${id}'`;
 
   try {
-    const result = await query(sql, values);
+    const status = await query(sql, values);
+    const result = await query(
+      `SELECT * FROM ${table} WHERE id = ${id}`
+    );
     return { error: null, result: result };
   } catch (error) {
     return { error: error.message, result: null };

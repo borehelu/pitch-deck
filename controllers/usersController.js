@@ -27,7 +27,7 @@ export default class UserController {
 
   static async registerUser(req, res) {
     const { firstName, lastName, email, password, userRole } = req.body;
-    console.log(firstName, lastName, password, email, userRole);
+
     // verify if user exists
     try {
       const { result } = await getItem("users", { email });
@@ -75,16 +75,13 @@ export default class UserController {
 
       if (user) {
         const { id, firstName, lastName, password: userPassword } = user[0];
-
         const confirmPassword = comparePassword(userPassword, password);
         if (!confirmPassword) {
           return errorResponse(res, 401, "Authorization failed");
         }
 
         const token = await generateToken({ userId: id, firstName, lastName });
-
         const data = { userId: id, token };
-
         return successResponse(res, 200, "success", data);
       }
       return errorResponse(res, 401, "Authorization failed");
