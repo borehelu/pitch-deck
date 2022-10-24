@@ -85,5 +85,4 @@ export const reply = [
     .isString()
     .withMessage("Provide your reply")
     .trim(),
-  body("comment_id").not().isEmpty().withMessage("Provide comment id").trim(),
 ];

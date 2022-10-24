@@ -35,6 +35,9 @@ export default class IdeaController {
     try {
       const { id: ideaId } = req.params;
       const { error, result: idea } = await getItem("ideas", { id: ideaId });
+
+      if (!idea.length > 0) return errorResponse(res, 404, "Idea not found");
+
       const { result: commentArr } = await getItem("comments", {
         ideaId: ideaId,
       });
@@ -43,8 +46,6 @@ export default class IdeaController {
       }
 
       const [currentIdea] = idea;
-
-      
 
       const response = { ...currentIdea, comments: commentArr };
 
@@ -177,6 +178,28 @@ export default class IdeaController {
     }
   }
 
+  static async getComments(req, res) {
+    try {
+      const { id: ideaId } = req.params;
+      const { error, result: idea } = await getItem("ideas", { id: ideaId });
+
+      if (!idea.length > 0) return errorResponse(res, 404, "Idea not found");
+
+      const { result: commentArr } = await getItem("comments", {
+        ideaId: ideaId,
+      });
+      if (error) {
+        return errorResponse(res, 500, "Server error");
+      }
+
+      const response = { comments: commentArr };
+
+      return successResponseArray(res, 200, response);
+    } catch (error) {
+      return errorResponse(res, 500, "Server error");
+    }
+  }
+
   static async editComment(req, res) {
     const { comment } = req.body;
     const { id: ideaId, commentId } = req.params;
@@ -242,6 +265,152 @@ export default class IdeaController {
       return errorResponse(res, 500, "Server error deleting comment");
     } catch (error) {
       return errorResponse(res, 500, "Internal server error");
+    }
+  }
+
+  static async replyToComment(req, res) {
+    const { reply } = req.body;
+    const { id: ideaId, commentId } = req.params;
+    const { userId } = await decodeToken(req.headers.authorization);
+
+    try {
+      const { result: idea } = await getItem("ideas", { id: ideaId });
+      if (!idea.length > 0) {
+        return errorResponse(res, 500, "Idea not found");
+      }
+      const { result: commentItem } = await getItem("comments", {
+        id: commentId,
+      });
+      if (!commentItem.length > 0)
+        return errorResponse(res, 404, "Comment not found");
+
+      const { error, result: newReply } = await createItem("replies", {
+        reply,
+        commentId,
+        userId,
+        createdAt: getCurrentDate(),
+        modifiedAt: getCurrentDate(),
+      });
+
+      const response = {
+        newReply,
+      };
+
+      if (!error) {
+        return successResponse(res, 201, "Reply succesfully created", response);
+      }
+      throw new Error(error);
+    } catch (error) {
+      console.log(error);
+      return errorResponse(res, 500, "Internal server error");
+    }
+  }
+
+  static async removeReply(req, res) {
+    try {
+      const { userId } = await decodeToken(req.headers.authorization);
+      const { id: ideaId, commentId, replyId } = req.params;
+
+      const { result: ideaItem } = await getItem("ideas", { id: ideaId });
+
+      if (!ideaItem.length > 0)
+        return errorResponse(res, 404, "Idea not found");
+      const { result: commentItem } = await getItem("comments", {
+        id: commentId,
+      });
+      if (!commentItem.length > 0)
+        return errorResponse(res, 404, "Comment not found");
+      const { result: replyItem } = await getItem("replies", {
+        id: replyId,
+      });
+      if (!replyItem.length > 0)
+        return errorResponse(res, 404, "Reply not found");
+
+      if (!userId === replyItem.userId)
+        return errorResponse(res, 403, "Not allowed");
+
+      const { result: deleted } = await deleteItem("replies", replyId);
+      if (deleted)
+        return successResponse(res, 200, "Reply succesfully deleted");
+      return errorResponse(res, 500, "Server error deleting comment");
+    } catch (error) {
+      return errorResponse(res, 500, "Internal server error");
+    }
+  }
+
+  static async editReply(req, res) {
+    const { reply } = req.body;
+    const { id: ideaId, commentId, replyId } = req.params;
+    const { userId } = await decodeToken(req.headers.authorization);
+
+    try {
+      const { result: ideaItem } = await getItem("ideas", {
+        id: ideaId,
+      });
+      if (!ideaItem.length > 0) return errorResponse(res, 404, "Not found");
+
+      const { result: commentItem } = await getItem("comments", {
+        id: commentId,
+      });
+      if (!commentItem.length > 0) return errorResponse(res, 404, "Not found");
+
+      const { result: replyItem } = await getItem("replies", {
+        id: replyId,
+      });
+      if (!replyItem.length > 0) return errorResponse(res, 404, "Not found");
+
+      if (!userId === replyItem.userId)
+        return errorResponse(res, 403, "Not allowed");
+      const { error, result: existingReply } = await updateItem(
+        "replies",
+        replyId,
+        {
+          reply: reply || replyItem.reply,
+          modifiedAt: getCurrentDate(),
+        }
+      );
+
+      if (!error) {
+        return successResponse(
+          res,
+          201,
+          "Reply succesfully updated",
+          existingReply
+        );
+      }
+
+      return errorResponse(res, 500, "Server error");
+    } catch (error) {
+      return errorResponse(res, 500, "Internal server error");
+    }
+  }
+
+  static async getReplies(req, res) {
+    try {
+      const { id: ideaId, commentId } = req.params;
+      const { error, result: idea } = await getItem("ideas", { id: ideaId });
+
+      if (!idea.length > 0) return errorResponse(res, 404, "Idea not found");
+
+      const { result: commentItem } = await getItem("comments", {
+        id: commentId,
+      });
+
+      if (!commentItem.length > 0)
+        return errorResponse(res, 404, "Comment not found");
+
+      const { result: repliesArr } = await getItem("replies", {
+        commentId: commentId,
+      });
+      if (error) {
+        return errorResponse(res, 500, "Server error");
+      }
+
+      const response = { replies: repliesArr };
+
+      return successResponseArray(res, 200, response);
+    } catch (error) {
+      return errorResponse(res, 500, "Server error");
     }
   }
 }
