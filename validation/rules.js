@@ -76,7 +76,6 @@ export const comment = [
     .isString()
     .withMessage("Provide your comment")
     .trim(),
-  body("idea_id").not().isEmpty().withMessage("Provide idea id").trim(),
 ];
 
 export const reply = [

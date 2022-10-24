@@ -1,6 +1,5 @@
 import UserController from "./usersController.js";
 import TagController from "./tagsController.js";
-// import GifController from './GifController';
-// import FeedController from './Feedcontroller';
+import IdeaController from "./ideasController.js";
 
-export { TagController, UserController };
+export { TagController, UserController, IdeaController };

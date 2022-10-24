@@ -6,6 +6,8 @@ import {
   successResponseArray,
 } from "./responses.js";
 
+import getCurrentDate from "./date.js";
+
 const { generateToken, verifyToken } = jwt;
 const { hashPassword, comparePassword } = bcrypt;
 
@@ -17,4 +19,5 @@ export {
   errorResponse,
   successResponse,
   successResponseArray,
+  getCurrentDate
 };

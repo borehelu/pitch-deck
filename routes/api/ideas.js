@@ -3,19 +3,26 @@ import { IdeaController } from "../../controllers/index.js";
 import { Authenticate, validate } from "../../middlewares/index.js";
 
 const router = express.Router();
-const { getIdeas, createIdea, removeIdea, editIdea, getIdea } = IdeaController;
+const { getIdeas, createIdea, removeIdea, editIdea, getIdea, commentIdea } = IdeaController;
 const { verifyToken } = Authenticate;
 
-// create tags
-router.post("/tags", verifyToken, createTag);
+// create idea
+router.post("/ideas", validate("createIdea"), verifyToken, createIdea);
 
-// get tags
-router.get("/tags", verifyToken, getTags);
+// get ideas
+router.get("/ideas", verifyToken, getIdeas);
 
-// remove tags
-router.delete("/tags/:id", verifyToken, removeTag);
+// get idea
+router.get("/ideas/:id", verifyToken, getIdea);
 
-// update tags
-router.patch("/tags/:id", validate("createTag"), verifyToken, editTag);
+// remove idea
+router.delete("/ideas/:id", verifyToken, removeIdea);
+
+// update idea
+router.patch("/ideas/:id", validate("createIdea"), verifyToken, editIdea);
+
+// comment idea
+router.post('/ideas/:id/comment', validate('comment'), verifyToken, commentIdea);
+
 
 export default router;
