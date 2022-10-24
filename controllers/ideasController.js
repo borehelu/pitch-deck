@@ -35,12 +35,18 @@ export default class IdeaController {
     try {
       const { id: ideaId } = req.params;
       const { error, result: idea } = await getItem("ideas", { id: ideaId });
-      const { result: commentArr } = await getItem('comments', { ideaId: ideaId });
+      const { result: commentArr } = await getItem("comments", {
+        ideaId: ideaId,
+      });
       if (error) {
         return errorResponse(res, 500, "Server error");
       }
 
-      const response = {...idea,comments: commentArr}
+      const [currentIdea] = idea;
+
+      
+
+      const response = { ...currentIdea, comments: commentArr };
 
       return successResponseArray(res, 200, response);
     } catch (error) {
@@ -82,9 +88,10 @@ export default class IdeaController {
 
       const { result: ideaItem } = await getItem("ideas", { id: ideaId });
 
-      if (!ideaItem.length > 0) return errorResponse(res, 404, "Idea not found");
+      if (!ideaItem.length > 0)
+        return errorResponse(res, 404, "Idea not found");
       if (ideaItem.userId !== userId) {
-        return errorResponse(res, 403, 'Not allowed');
+        return errorResponse(res, 403, "Not allowed");
       }
 
       const { result: deleted } = await deleteItem("ideas", ideaId);
@@ -105,11 +112,15 @@ export default class IdeaController {
       });
       if (!ideaItem.length > 0) return errorResponse(res, 404, "Not found");
 
-      const { error, result: existingIdea } = await updateItem("ideas", ideaId, {
-        title: title || ideaItem.title,
-        description: description || ideaItem.description,
-        modifiedAt: getCurrentDate()
-      });
+      const { error, result: existingIdea } = await updateItem(
+        "ideas",
+        ideaId,
+        {
+          title: title || ideaItem.title,
+          description: description || ideaItem.description,
+          modifiedAt: getCurrentDate(),
+        }
+      );
 
       if (!error) {
         return successResponse(
@@ -133,30 +144,104 @@ export default class IdeaController {
     const { userId } = await decodeToken(req.headers.authorization);
 
     try {
-      const { result: idea } = await getItem('ideas', { id: ideaId });
+      const { result: idea } = await getItem("ideas", { id: ideaId });
       if (!idea.length > 0) {
-        return errorResponse(res, 500, 'Idea not found');
+        return errorResponse(res, 500, "Idea not found");
       }
-      const { error, result: newComment } = await createItem('comments', {
+      const { error, result: newComment } = await createItem("comments", {
         comment,
         ideaId,
         userId,
         createdAt: getCurrentDate(),
+        modifiedAt: getCurrentDate(),
       });
 
       const response = {
         ...newComment,
         ideaTitle: idea.title,
-        ideaDescription: idea.description
+        ideaDescription: idea.description,
       };
-      
+
       if (!error) {
-        return successResponse(res, 201, 'Comment succesfully created', response);
+        return successResponse(
+          res,
+          201,
+          "Comment succesfully created",
+          response
+        );
       }
       throw new Error(error);
     } catch (error) {
-        console.log(error);
-      return errorResponse(res, 500, 'Internal server error');
+      console.log(error);
+      return errorResponse(res, 500, "Internal server error");
+    }
+  }
+
+  static async editComment(req, res) {
+    const { comment } = req.body;
+    const { id: ideaId, commentId } = req.params;
+    const { userId } = await decodeToken(req.headers.authorization);
+
+    try {
+      const { result: ideaItem } = await getItem("ideas", {
+        id: ideaId,
+      });
+      if (!ideaItem.length > 0) return errorResponse(res, 404, "Not found");
+
+      const { result: commentItem } = await getItem("comments", {
+        id: commentId,
+      });
+      if (!commentItem.length > 0) return errorResponse(res, 404, "Not found");
+
+      if (!userId === commentItem.userId)
+        return errorResponse(res, 403, "Not allowed");
+      const { error, result: existingComment } = await updateItem(
+        "comments",
+        commentId,
+        {
+          comment: comment || commentItem.comment,
+          modifiedAt: getCurrentDate(),
+        }
+      );
+
+      if (!error) {
+        return successResponse(
+          res,
+          201,
+          "Comment succesfully updated",
+          existingComment
+        );
+      }
+
+      return errorResponse(res, 500, "Server error");
+    } catch (error) {
+      return errorResponse(res, 500, "Internal server error");
+    }
+  }
+
+  static async removeComment(req, res) {
+    try {
+      const { userId } = await decodeToken(req.headers.authorization);
+      const { id: ideaId, commentId } = req.params;
+
+      const { result: ideaItem } = await getItem("ideas", { id: ideaId });
+
+      if (!ideaItem.length > 0)
+        return errorResponse(res, 404, "Idea not found");
+      const { result: commentItem } = await getItem("comments", {
+        id: commentId,
+      });
+      if (!commentItem.length > 0)
+        return errorResponse(res, 404, "Comment not found");
+      if (!userId === commentItem.userId)
+        return errorResponse(res, 403, "Not allowed");
+
+      const { result: deleted } = await deleteItem("comments", commentId);
+      if (deleted)
+        return successResponse(res, 200, "Comment succesfully deleted");
+      return errorResponse(res, 500, "Server error deleting comment");
+    } catch (error) {
+      return errorResponse(res, 500, "Internal server error");
     }
   }
 }
