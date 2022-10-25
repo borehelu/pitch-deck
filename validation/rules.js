@@ -86,3 +86,21 @@ export const reply = [
     .withMessage("Provide your reply")
     .trim(),
 ];
+
+export const passwordLink = [
+  body("email")
+    .not()
+    .isEmpty()
+    .isString()
+    .withMessage("Provide your email")
+    .trim(),
+];
+
+export const passwordReset = [
+  body("password")
+    .not()
+    .isEmpty()
+    .isString()
+    .withMessage("Provide your password")
+    .trim(),
+];

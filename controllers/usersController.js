@@ -4,9 +4,16 @@ import {
   successResponseArray,
   hashPassword,
   generateToken,
+  sendEmail,
+  generateResetToken,
+  comparePassword,
 } from "../utilities/index.js";
-import { createItem, getItem, getItems } from "../database/query/helper.js";
-import { comparePassword } from "../utilities/bcrypt.js";
+import {
+  createItem,
+  getItem,
+  getItems,
+  updateItem,
+} from "../database/query/helper.js";
 
 export default class UserController {
   static async getUsers(req, res) {
@@ -73,7 +80,7 @@ export default class UserController {
     try {
       const { result: user } = await getItem("users", { email });
 
-      if (user) {
+      if (user.length > 0) {
         const { id, firstName, lastName, password: userPassword } = user[0];
         const confirmPassword = comparePassword(userPassword, password);
         if (!confirmPassword) {
@@ -86,6 +93,78 @@ export default class UserController {
       }
       return errorResponse(res, 401, "Authorization failed");
     } catch (error) {
+      return errorResponse(res, 500, "Server error");
+    }
+  }
+
+  static async sendPasswordResetLink(req, res) {
+    const { email } = req.body;
+
+    try {
+      const { result: user } = await getItem("users", { email });
+
+      if (user.length > 0) {
+        const { id, lastName } = user[0];
+        const { resetToken, hashedToken } = generateResetToken();
+
+        const { error, result: existingUser } = await updateItem("users", id, {
+          token: hashedToken,
+        });
+
+        const subject = "Password reset";
+
+        console.log(email, subject, lastName, resetToken, id);
+
+        let mailIsSent = await sendEmail(
+          email,
+          subject,
+          lastName,
+          resetToken,
+          id
+        );
+
+        if (mailIsSent) {
+          return successResponse(res, 200, "Reset link sent successfuly");
+        } else {
+          console.log("error i s");
+          return errorResponse(res, 500, "Server error");
+        }
+      }
+      return errorResponse(res, 401, "Email does not exist");
+    } catch (error) {
+      console.log(error);
+      return errorResponse(res, 500, "Server error");
+    }
+  }
+
+  static async resetPassword(req, res) {
+    const { password, userId: id } = req.body;
+    const { token } = req.params;
+
+    try {
+      const { result: userItem } = await getItem("users", { id });
+
+      const [user] = userItem;
+
+      const isValid = comparePassword(user.token, token);
+
+      if (!isValid) {
+        return errorResponse(res, 401, "Authorization failed");
+      }
+
+      const { error, result: existingUser } = await updateItem(
+        "users",
+        user.id,
+        {
+          password: hashPassword(password),
+        }
+      );
+
+      if (!error) {
+        return successResponse(res, 200, "Password reset successfuly");
+      }
+    } catch (error) {
+      console.log(error);
       return errorResponse(res, 500, "Server error");
     }
   }

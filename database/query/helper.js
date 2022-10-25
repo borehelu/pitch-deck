@@ -40,9 +40,7 @@ export const updateItem = async (table, id, data) => {
 
   try {
     const status = await query(sql, values);
-    const result = await query(
-      `SELECT * FROM ${table} WHERE id = ${id}`
-    );
+    const result = await query(`SELECT * FROM ${table} WHERE id = ${id}`);
     return { error: null, result: result };
   } catch (error) {
     return { error: error.message, result: null };
@@ -66,6 +64,34 @@ export const getItem = async (table, option) => {
   const value = Object.values(option);
   const key = Object.keys(option)[0];
   const sql = `SELECT * FROM ${table}  WHERE  ${key}=?`;
+
+  try {
+    const result = await query(sql, value);
+    return { error: null, result: result };
+  } catch (error) {
+    return { error: error.message, result: null };
+  }
+};
+
+// Get a single item from db
+export const getItemCondition = async (table, option) => {
+  const value = Object.values(option);
+  const key = Object.keys(option);
+  const sql = `SELECT * FROM ${table}  WHERE  ${key[0]}=? AND ${key[1]} = ?`;
+
+  try {
+    const result = await query(sql, value);
+    return { error: null, result: result };
+  } catch (error) {
+    return { error: error.message, result: null };
+  }
+};
+
+// Delete an item
+export const deleteItemCondition = async (table, option) => {
+  const value = Object.values(option);
+  const key = Object.keys(option);
+  const sql = `DELETE FROM ${table} WHERE ${key[0]}= ? AND ${key[1]} = ?`;
 
   try {
     const result = await query(sql, value);

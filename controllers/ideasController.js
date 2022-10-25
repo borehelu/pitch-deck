@@ -10,6 +10,8 @@ import {
   getItem,
   getItems,
   updateItem,
+  getItemCondition,
+  deleteItemCondition,
 } from "../database/query/helper.js";
 
 import jwt from "../utilities/jwt.js";
@@ -84,7 +86,7 @@ export default class IdeaController {
 
   static async removeIdea(req, res) {
     try {
-      const { userId } = decodeToken(req.headers.authorization);
+      const { userId } = await decodeToken(req.headers.authorization);
       const { id: ideaId } = req.params;
 
       const { result: ideaItem } = await getItem("ideas", { id: ideaId });
@@ -128,6 +130,73 @@ export default class IdeaController {
           res,
           201,
           "Idea succesfully updated",
+          existingIdea
+        );
+      }
+      console.log(error);
+      return errorResponse(res, 500, "Server error");
+    } catch (error) {
+      console.log(error);
+      return errorResponse(res, 500, "Internal server error");
+    }
+  }
+
+  static async upvoteIdea(req, res) {
+    const { id: ideaId } = req.params;
+    const { userId } = await decodeToken(req.headers.authorization);
+    let newUpvotes;
+
+    try {
+      const { result: ideaItem } = await getItem("ideas", {
+        id: ideaId,
+      });
+      if (!ideaItem.length > 0) return errorResponse(res, 404, "Not found");
+
+      const { result: upvotes } = await getItemCondition("upvotes", {
+        ideaId: ideaId,
+        userId: userId,
+      });
+
+      if (upvotes.length > 0) {
+        newUpvotes = ideaItem[0].upvotes - 1;
+        newUpvotes = newUpvotes < 0 ? 0 : newUpvotes;
+        const { error, result: upvotes } = await deleteItemCondition(
+          "upvotes",
+          {
+            ideaId: ideaId,
+            userId: userId,
+          }
+        );
+        if (error) {
+          throw new Error(error);
+        }
+      } else {
+        newUpvotes = ideaItem[0].upvotes + 1;
+        const { error: createError, result: upvotes } = await createItem(
+          "upvotes",
+          {
+            ideaId,
+            userId,
+          }
+        );
+        if (createError) {
+          throw new Error(createError);
+        }
+      }
+      const { error, result: existingIdea } = await updateItem(
+        "ideas",
+        ideaId,
+        {
+          upvotes: newUpvotes,
+          modifiedAt: getCurrentDate(),
+        }
+      );
+
+      if (!error) {
+        return successResponse(
+          res,
+          201,
+          "Idea succesfully upvoted",
           existingIdea
         );
       }
