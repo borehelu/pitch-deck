@@ -17,6 +17,7 @@ const {
   editReply,
   removeReply,
   getReplies,
+  upvoteIdea
 } = IdeaController;
 
 const { verifyToken } = Authenticate;
@@ -29,6 +30,8 @@ router.get("/ideas", verifyToken, getIdeas);
 
 // get idea
 router.get("/ideas/:id", getIdea);
+
+router.patch("/ideas/:id/upvote", upvoteIdea);
 
 // remove idea
 router.delete("/ideas/:id", verifyToken, removeIdea);
