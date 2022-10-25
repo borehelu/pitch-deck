@@ -153,18 +153,17 @@ export default class IdeaController {
       if (!ideaItem.length > 0) return errorResponse(res, 404, "Not found");
 
       const { result: upvotes } = await getItemCondition("upvotes", {
-        id: ideaId,
+        ideaId: ideaId,
         userId: userId,
       });
 
-      console.log(upvotes.length);
-
       if (upvotes.length > 0) {
         newUpvotes = ideaItem[0].upvotes - 1;
+        newUpvotes = newUpvotes < 0 ? 0 : newUpvotes;
         const { error, result: upvotes } = await deleteItemCondition(
           "upvotes",
           {
-            id: ideaId,
+            ideaId: ideaId,
             userId: userId,
           }
         );
