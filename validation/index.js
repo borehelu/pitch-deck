@@ -1,4 +1,13 @@
-import { userRegister, loginUser, createIdea, comment, createTag, reply } from './rules.js';
+import {
+  userRegister,
+  loginUser,
+  createIdea,
+  comment,
+  createTag,
+  reply,
+  passwordLink,
+  passwordReset,
+} from "./rules.js";
 
 export const validationFetch = (validationName) => {
   const rules = {
@@ -7,7 +16,9 @@ export const validationFetch = (validationName) => {
     createIdea,
     comment,
     createTag,
-    reply
+    reply,
+    passwordLink,
+    passwordReset,
   };
 
   return rules[validationName];

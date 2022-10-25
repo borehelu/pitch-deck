@@ -71,20 +71,16 @@ router.post(
   replyToComment
 );
 
-  // view idea
-  router.get(
-      "/ideas/:id/comments/:commentId/replies",
-      verifyToken,
-      getReplies
-    );
+// view idea
+router.get("/ideas/:id/comments/:commentId/replies", verifyToken, getReplies);
 
-  // comment idea
-  router.patch(
-    "/ideas/:id/comments/:commentId/replies/:replyId",
-    validate("reply"),
-    verifyToken,
-    editReply
-  );
+// comment idea
+router.patch(
+  "/ideas/:id/comments/:commentId/replies/:replyId",
+  validate("reply"),
+  verifyToken,
+  editReply
+);
 
 // comment idea
 router.delete(
