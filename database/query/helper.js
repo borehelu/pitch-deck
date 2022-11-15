@@ -122,3 +122,20 @@ export const getItems = async (table, condition = null) => {
 // };
 
 // console.log(await createItem("tags", tag));
+// Get a single item from db
+export const getIdeasDb = async () => {
+  const sql = `SELECT ideas.id, ideas.title, ideas.description, ideas.upvotes, ideas.createdAt, ideas.userId, users.firstName, users.lastName, COUNT(comments.id) AS comments, GROUP_CONCAT(tags.name) as tags
+  FROM ideas
+  LEFT JOIN users ON ideas.userId = users.id
+  LEFT JOIN comments ON ideas.id = comments.ideaId
+  LEFT JOIN ideatags ON ideas.id = ideatags.ideaId
+  LEFT JOIN tags on ideatags.tagId = tags.id
+  GROUP BY ideas.id`;
+
+  try {
+    const result = await query(sql);
+    return { error: null, result: result };
+  } catch (error) {
+    return { error: error.message, result: null };
+  }
+};

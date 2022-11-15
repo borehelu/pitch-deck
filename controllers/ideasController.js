@@ -9,6 +9,7 @@ import {
   deleteItem,
   getItem,
   getItems,
+  getIdeasDb,
   updateItem,
   getItemCondition,
   deleteItemCondition,
@@ -22,13 +23,32 @@ const { decodeToken } = jwt;
 export default class IdeaController {
   static async getIdeas(req, res) {
     try {
-      const { error, result: ideas } = await getItems("ideas");
+      const { error, result: ideas } = await getIdeasDb("ideas");
       if (error) {
         return errorResponse(res, 500, "Server error");
       }
 
-      return successResponseArray(res, 200, ideas);
+    const newIdeas = ideas.map((idea)=>{
+      let tags = idea.tags.split(',');
+        return {
+          id: idea.id,
+          title: idea.title,
+          description: idea.description,
+          author: {
+            userId: idea.userId,
+            firstName: idea.firstName,
+            lastName: idea.lastName,
+          },
+          createdAt: idea.createdAt,
+          upvotes: idea.upvotes,
+          comments: idea.comments,
+          tags
+        }
+      })
+
+      return successResponseArray(res, 200, newIdeas);
     } catch (error) {
+      console.log(error.message)
       return errorResponse(res, 500, "Server error");
     }
   }
