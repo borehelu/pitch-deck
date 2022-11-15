@@ -17,7 +17,7 @@ const {
   editReply,
   removeReply,
   getReplies,
-  upvoteIdea
+  upvoteIdea,
 } = IdeaController;
 
 const { verifyToken } = Authenticate;
