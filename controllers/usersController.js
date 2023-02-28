@@ -33,7 +33,7 @@ export default class UserController {
   }
 
   static async registerUser(req, res) {
-    const { firstName, lastName, email, password, userRole } = req.body;
+    const { firstName, lastName, email, password, userRole, avatar } = req.body;
 
     // verify if user exists
     try {
@@ -49,6 +49,7 @@ export default class UserController {
           password: password ? hashPassword(password) : undefined,
           email,
           userRole: userRole ? userRole.toLowerCase() : "user",
+          avatar,
         }
       );
       if (createError) {
@@ -81,14 +82,14 @@ export default class UserController {
       const { result: user } = await getItem("users", { email });
 
       if (user.length > 0) {
-        const { id, firstName, lastName, password: userPassword } = user[0];
+        const { id, firstName, lastName, password: userPassword,avatar } = user[0];
         const confirmPassword = comparePassword(userPassword, password);
         if (!confirmPassword) {
           return errorResponse(res, 401, "Authorization failed");
         }
 
         const token = await generateToken({ userId: id, firstName, lastName });
-        const data = { userId: id, token };
+        const data = { user:{userId: id, firstName, lastName,avatar}, token };
         return successResponse(res, 200, "success", data);
       }
       return errorResponse(res, 401, "Authorization failed");
