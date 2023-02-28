@@ -22,6 +22,9 @@ export const userRegister = [
     .isEmail()
     .isLength({ min: 3, max: 250 })
     .trim(),
+  body("avatar", "Please provide the avatar")
+    .isLength({ min: 4, max: 7})
+    .trim(),
 ];
 
 export const loginUser = [
