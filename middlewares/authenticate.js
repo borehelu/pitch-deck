@@ -42,6 +42,7 @@ class Authenticate {
       return next();
     } catch (error) {
       if (error.message === "no auth" || error.message === "jwt expired") {
+        console.log(error)
         return errorResponse(res, 401, "Authorisation failed");
       }
       return errorResponse(res, 500, "Server error");
