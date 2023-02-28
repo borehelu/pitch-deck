@@ -10,7 +10,6 @@ export const createItem = async (table, data) => {
   const keys = Object.keys(data).map((val) => `${val}`);
   const columns = getColumns(keys);
   const sql = `INSERT INTO ${table}(${keys.toString()}) VALUES(${columns}); `;
-  // SELECT * FROM ${table} WHERE id = LAST_INSERT_ID()
   try {
     const status = await query(sql, values);
     const result = await query(
@@ -124,17 +123,61 @@ export const getItems = async (table, condition = null) => {
 // console.log(await createItem("tags", tag));
 // Get a single item from db
 export const getIdeasDb = async () => {
-  const sql = `SELECT ideas.id, ideas.title, ideas.description, ideas.upvotes, ideas.createdAt, ideas.userId, users.firstName, users.lastName, COUNT(comments.id) AS comments, GROUP_CONCAT(tags.name) as tags
+  const sql = `SELECT ideas.id, ideas.title, ideas.description, ideas.upvotes, ideas.createdAt, ideas.userId, users.firstName, users.lastName, users.avatar, COUNT(comments.id) AS comments, GROUP_CONCAT(tags.name) as tags
   FROM ideas
   LEFT JOIN users ON ideas.userId = users.id
   LEFT JOIN comments ON ideas.id = comments.ideaId
   LEFT JOIN ideatags ON ideas.id = ideatags.ideaId
   LEFT JOIN tags on ideatags.tagId = tags.id
-  GROUP BY ideas.id`;
+  GROUP BY ideas.id ORDER BY ideas.createdAt desc`;
 
   try {
     const result = await query(sql);
     return { error: null, result: result };
+  } catch (error) {
+    return { error: error.message, result: null };
+  }
+};
+
+export const getCommentsDb = async (ideaId) => {
+  const sql = `SELECT comments.id, comments.comment, users.id as userId, users.firstName, users.lastName, users.avatar,comments.createdAt, comments.modifiedAt FROM comments
+  LEFT JOIN users ON comments.userId = users.id WHERE comments.ideaId = ? ORDER BY createdAt ASC`;
+
+  try {
+    const result = await query(sql, ideaId);
+    return { error: null, result: result };
+  } catch (error) {
+    return { error: error.message, result: null };
+  }
+};
+
+// Add item to a table
+export const addTags = async (table, data) => {
+  let sql = `INSERT INTO ideatags (ideaId,tagId) VALUES ?`;
+  let values = data.tags.map((t) => {
+    return [data.ideaId, t];
+  });
+
+  try {
+    const status = await query(sql, [values]);
+    const result = await query(
+      `SELECT * FROM ideatags WHERE ideaId = ? `,
+      data.ideaId
+    );
+    return { error: null, result: result };
+  } catch (error) {
+    console.log(error.message);
+    return { error: error.message, result: null };
+  }
+};
+
+export const updateTags = async (ideaId, newTags) => {
+  let sql = `DELETE FROM ideatags WHERE ideaId = ?`;
+
+  try {
+    const status = await query(sql, ideaId);
+    console.log(status);
+    addTags("ideatags", { ideaId, tags: newTags });
   } catch (error) {
     return { error: error.message, result: null };
   }
