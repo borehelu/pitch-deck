@@ -10,45 +10,38 @@ import {
   getItem,
   getItems,
   getIdeasDb,
+  getCommentsDb,
   updateItem,
   getItemCondition,
   deleteItemCondition,
+  updateTags,
 } from "../database/query/helper.js";
 
 import jwt from "../utilities/jwt.js";
 import { getCurrentDate } from "../utilities/index.js";
+import { createIdea, fetchIdeas } from "../models/Ideas.js";
 
 const { decodeToken } = jwt;
 
 export default class IdeaController {
+  static async postIdea(req, res) {
+    const { userId } = await decodeToken(req.headers.authorization);
+    try {
+      const data = await createIdea({ ...req.body, userId });
+      return successResponseArray(res, 201, data);
+    } catch (error) {
+      console.log(error);
+      return errorResponse(res, 500, "Server error");
+    }
+  }
+
   static async getIdeas(req, res) {
     try {
-      const { error, result: ideas } = await getIdeasDb("ideas");
-      if (error) {
-        return errorResponse(res, 500, "Server error");
-      }
-
-    const newIdeas = ideas.map((idea)=>{
-      let tags = idea.tags.split(',');
-        return {
-          id: idea.id,
-          title: idea.title,
-          description: idea.description,
-          author: {
-            userId: idea.userId,
-            firstName: idea.firstName,
-            lastName: idea.lastName,
-          },
-          createdAt: idea.createdAt,
-          upvotes: idea.upvotes,
-          comments: idea.comments,
-          tags
-        }
-      })
-
-      return successResponseArray(res, 200, newIdeas);
+      const { userId } = await decodeToken(req.headers.authorization);
+      const ideas = await fetchIdeas(userId);
+      return successResponseArray(res, 200, ideas);
     } catch (error) {
-      console.log(error.message)
+      console.log(error.message);
       return errorResponse(res, 500, "Server error");
     }
   }
@@ -77,33 +70,6 @@ export default class IdeaController {
     }
   }
 
-  static async createIdea(req, res) {
-    const { title, description } = req.body;
-
-    try {
-      const { userId } = await decodeToken(req.headers.authorization);
-      const { error: createError, result: newIdea } = await createItem(
-        "ideas",
-        {
-          title,
-          description,
-          userId,
-          createdAt: getCurrentDate(),
-          upvotes: 0,
-          modifiedAt: getCurrentDate(),
-        }
-      );
-      if (createError) {
-        throw new Error(createError);
-      }
-
-      successResponse(res, 201, "Idea created succesfully", newIdea);
-    } catch (error) {
-      console.log(error);
-      return errorResponse(res, 500, "Server error");
-    }
-  }
-
   static async removeIdea(req, res) {
     try {
       const { userId } = await decodeToken(req.headers.authorization);
@@ -113,7 +79,7 @@ export default class IdeaController {
 
       if (!ideaItem.length > 0)
         return errorResponse(res, 404, "Idea not found");
-      if (ideaItem.userId !== userId) {
+      if (ideaItem[0].userId !== userId) {
         return errorResponse(res, 403, "Not allowed");
       }
 
@@ -126,7 +92,7 @@ export default class IdeaController {
   }
 
   static async editIdea(req, res) {
-    const { title, description } = req.body;
+    const { title, description, tags } = req.body;
     const { id: ideaId } = req.params;
 
     try {
@@ -145,16 +111,19 @@ export default class IdeaController {
         }
       );
 
-      if (!error) {
-        return successResponse(
-          res,
-          201,
-          "Idea succesfully updated",
-          existingIdea
-        );
+      if (existingIdea) {
+        updateTags(ideaId, tags)
+          .then((result) => {
+            console.log(result);
+            return successResponse(
+              res,
+              201,
+              "Idea succesfully updated",
+              existingIdea
+            );
+          })
+          .catch((er) => console.log(er));
       }
-      console.log(error);
-      return errorResponse(res, 500, "Server error");
     } catch (error) {
       console.log(error);
       return errorResponse(res, 500, "Internal server error");
@@ -246,18 +215,12 @@ export default class IdeaController {
         modifiedAt: getCurrentDate(),
       });
 
-      const response = {
-        ...newComment,
-        ideaTitle: idea.title,
-        ideaDescription: idea.description,
-      };
-
       if (!error) {
         return successResponse(
           res,
           201,
           "Comment succesfully created",
-          response
+          newComment
         );
       }
       throw new Error(error);
@@ -274,14 +237,27 @@ export default class IdeaController {
 
       if (!idea.length > 0) return errorResponse(res, 404, "Idea not found");
 
-      const { result: commentArr } = await getItem("comments", {
-        ideaId: ideaId,
-      });
+      const { result: commentArr } = await getCommentsDb(ideaId);
       if (error) {
         return errorResponse(res, 500, "Server error");
       }
 
-      const response = { comments: commentArr };
+      const comments = commentArr.map((comment) => {
+        return {
+          id: comment.id,
+          comment: comment.comment,
+          author: {
+            userId: comment.userId,
+            firstName: comment.firstName,
+            lastName: comment.lastName,
+            avatar: comment.avatar,
+          },
+          createdAt: comment.createdAt,
+          modifiedAt: comment.modifiedAt,
+        };
+      });
+
+      const response = { comments };
 
       return successResponseArray(res, 200, response);
     } catch (error) {
@@ -320,7 +296,7 @@ export default class IdeaController {
         return successResponse(
           res,
           201,
-          "Comment succesfully updated",
+          "Comment successfully updated",
           existingComment
         );
       }
@@ -350,7 +326,7 @@ export default class IdeaController {
 
       const { result: deleted } = await deleteItem("comments", commentId);
       if (deleted)
-        return successResponse(res, 200, "Comment succesfully deleted");
+        return successResponse(res, 200, "Comment successfully deleted");
       return errorResponse(res, 500, "Server error deleting comment");
     } catch (error) {
       return errorResponse(res, 500, "Internal server error");
@@ -386,7 +362,7 @@ export default class IdeaController {
       };
 
       if (!error) {
-        return successResponse(res, 201, "Reply succesfully created", response);
+        return successResponse(res, 201, "Reply successfully created", response);
       }
       throw new Error(error);
     } catch (error) {
