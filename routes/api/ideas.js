@@ -5,7 +5,7 @@ import { Authenticate, validate } from "../../middlewares/index.js";
 const router = express.Router();
 const {
   getIdeas,
-  createIdea,
+  postIdea,
   removeIdea,
   editIdea,
   getIdea,
@@ -23,7 +23,7 @@ const {
 const { verifyToken } = Authenticate;
 
 // create idea
-router.post("/ideas", validate("createIdea"), verifyToken, createIdea);
+router.post("/ideas", validate("createIdea"), verifyToken, postIdea);
 
 // get ideas
 router.get("/ideas", verifyToken, getIdeas);
@@ -59,12 +59,7 @@ router.patch(
 );
 
 // comment idea
-router.delete(
-  "/ideas/:id/comments/:commentId",
-  validate("comment"),
-  verifyToken,
-  removeComment
-);
+router.delete("/ideas/:id/comments/:commentId", verifyToken, removeComment);
 
 // comment idea
 router.post(
